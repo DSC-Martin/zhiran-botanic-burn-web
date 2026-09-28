@@ -1,0 +1,6 @@
+{
+  "name": "植燃 BOTANIC BURN",
+  "description": "「植燃」天然植物系運動補給飲品牌官網與商品型錄，提供多款自然植萃電解質風味介紹及後台商品管理系統。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,50 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Default-Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        ((request.auth.token.email == 'martin.lee@dentsu.com' || request.auth.token.email.lower() == 'martin.lee@dentsu.com') && request.auth.token.email_verified == true) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Public catalog products
+    match /products/{productId} {
+      allow get: if isValidId(productId);
+      allow list: if true;
+      allow create, update, delete: if isAdmin() && isValidId(productId);
+    }
+
+    // Customer contact messages
+    match /contactMessages/{messageId} {
+      allow create: if isValidId(messageId) &&
+        request.resource.data.keys().hasAll(['name', 'email', 'message']) &&
+        request.resource.data.name is string && request.resource.data.name.size() <= 80 &&
+        request.resource.data.email is string && request.resource.data.email.size() <= 120 &&
+        request.resource.data.message is string && request.resource.data.message.size() <= 2000;
+      allow get, delete, update: if isAdmin() && isValidId(messageId);
+      allow list: if isAdmin();
+    }
+
+    // Admins registry
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && (isAdmin() || (isSignedIn() && request.auth.uid == adminId));
+      allow list: if isAdmin();
+      allow write: if isAdmin() && isValidId(adminId);
+    }
+  }
+}
